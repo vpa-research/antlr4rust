@@ -105,7 +105,8 @@ impl<'input, T: TokenSource<'input>> CommonTokenStream<'input, T> {
             base: UnbufferedTokenStream::new_buffered(lexer),
             channel,
         };
-        r.sync(0);
+        let i = r.next_token_on_channel(0, channel, 1);
+        r.base.seek(i);
         r
     }
 
