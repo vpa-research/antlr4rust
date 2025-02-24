@@ -901,9 +901,9 @@ LocalRef(a) ::= "*_localctx.get_<a.name>()"
 RetValueRef(a) ::= "*_localctx.get_<a.name>()"
 QRetValueRef(a) ::= "<ctx(a)>.<a.dict>.as_ref().unwrap().get_<a.name>()"
 /** How to translate $tokenLabel */
-TokenRef(t) ::= "<ctx(t)>.<t.name>.as_ref()"
-LabelRef(t) ::= "<ctx(t)>.<t.name>.as_ref().unwrap()"
-ListLabelRef(t) ::= "<ctx(t)>.<ListLabelName(t.name)>"
+TokenRef(t) ::= "<ctx(t)>.<t.escapedName>.as_ref()"
+LabelRef(t) ::= "<ctx(t)>.<t.escapedName>.as_ref().unwrap()"
+ListLabelRef(t) ::= "<ctx(t)>.<ListLabelName(t.escapedName)>"
 SetAttr(s,rhsChunks) ::= <<
 let tmp = {<rhsChunks>}.to_owned();
 <ctx_mut_action(s,{.set_<s.name>(tmp);})>
@@ -937,19 +937,19 @@ ThisRulePropertyRef_parser(r)	 ::= "<self()>"
 // not self because we need to access parser from sempred functions where it is a fn parameter so it can't be self
 self() ::= "recog"
 
-NonLocalAttrRef(s)		 ::= "((\<s.ruleName; format=\"cap\">Context)getInvokingContext(<s.ruleIndex>)).<s.name>"
+NonLocalAttrRef(s)		 ::= "((\<s.ruleName; format=\"cap\">Context)getInvokingContext(<s.ruleIndex>)).<s.escapedName>"
 SetNonLocalAttr(s, rhsChunks)	  ::=
-	"((<s.ruleName; format=\"cap\">Context)getInvokingContext(<s.ruleIndex>)).<s.name> = <rhsChunks>;"
+	"((<s.ruleName; format=\"cap\">Context)getInvokingContext(<s.ruleIndex>)).<s.escapedName> = <rhsChunks>;"
 
 AddToLabelList(a) ::= <<
 let temp = <labelref(a.label,{.clone().unwrap()})>;
 <ctx_mut_action(a.label,{.<a.listName>.push(temp);})> >>
 
-TokenDecl(t) ::= "<t.name>: Option\<<TokenLabelType()>>"
-TokenTypeDecl(t) ::= "let mut <t.name>: isize = -1;"
-TokenListDecl(t) ::= "<t.name>:Vec\<<TokenLabelType()>>"
-RuleContextDecl(r) ::= "<r.name>: Option\<Rc\<<r.ctxName>All\<'input>>>"
-RuleContextListDecl(rdecl) ::= "<rdecl.name>:Vec\<Rc\<<rdecl.ctxName>All\<'input>>>"
+TokenDecl(t) ::= "<t.escapedName>: Option\<<TokenLabelType()>>"
+TokenTypeDecl(t) ::= "let mut <t.escapedName>: isize = -1;"
+TokenListDecl(t) ::= "<t.escapedName>:Vec\<<TokenLabelType()>>"
+RuleContextDecl(r) ::= "<r.escapedName>: Option\<Rc\<<r.ctxName>All\<'input>>>"
+RuleContextListDecl(rdecl) ::= "<rdecl.escapedName>:Vec\<Rc\<<rdecl.ctxName>All\<'input>>>"
 
 ContextTokenGetterDecl(t)      ::= <<
 /// Retrieves first TerminalNode corresponding to token <t.name>
@@ -970,7 +970,7 @@ fn <t.name>(&self, i: usize) -> Option\<Rc\<TerminalNode\<'input,<parser.name>Co
 }
 >>
 ContextRuleGetterDecl(r)       ::= <<
-fn <r.name>(&self) -> Option\<Rc\<<r.ctxName>All\<'input>\>> where Self:Sized{
+fn <r.escapedName>(&self) -> Option\<Rc\<<r.ctxName>All\<'input>\>> where Self:Sized{
 	self.child_of_type(0)
 }
 >>
@@ -980,7 +980,7 @@ fn <r.name>_all(&self) ->  Vec\<Rc\<<r.ctxName>All\<'input>\>> where Self:Sized{
 }
 >>
 ContextRuleListIndexedGetterDecl(r)   ::= <<
-fn <r.name>(&self, i: usize) -> Option\<Rc\<<r.ctxName>All\<'input>\>> where Self:Sized{
+fn <r.escapedName>(&self, i: usize) -> Option\<Rc\<<r.ctxName>All\<'input>\>> where Self:Sized{
 	self.child_of_type(i)
 }
 >>
@@ -1043,13 +1043,13 @@ impl\<'input> <struct.name>Ext\<'input>{
 		<if(struct.provideCopyFrom)><struct.name>All::Error(<endif>
 			<if(contextSuperClass)><contextSuperClass><else>BaseParserRuleContext<endif>::new_parser_ctx(parent, invoking_state,<struct.name>Ext{
 			<!<attrs:{a | <a.name>:None,}>!>
-				<struct.tokenDecls:{a | <a.name>: None, }>
-				<struct.tokenTypeDecls:{a | <a.name>: -1, }>
-				<struct.tokenListDecls:{a | <a.name>: Vec::new(), }>
-				<struct.ruleContextDecls:{a | <a.name>: None, }>
-				<struct.ruleContextListDecls:{a | <a.name>: Vec::new(), }>
-				<struct.notCtorAttrs:{a |<a.name>: <if(a.initValue)><a.initValue><else>Default::default()<endif>,}>
-				<struct.ctorAttrs:{a | <a.name>,}>
+				<struct.tokenDecls:{a | <a.escapedName>: None, }>
+				<struct.tokenTypeDecls:{a | <a.escapedName>: -1, }>
+				<struct.tokenListDecls:{a | <a.escapedName>: Vec::new(), }>
+				<struct.ruleContextDecls:{a | <a.escapedName>: None, }>
+				<struct.ruleContextListDecls:{a | <a.escapedName>: Vec::new(), }>
+				<struct.notCtorAttrs:{a |<a.escapedName>: <if(a.initValue)><a.initValue><else>Default::default()<endif>,}>
+				<struct.ctorAttrs:{a | <a.escapedName>,}>
 				ph:PhantomData
 			}),
 		<if(struct.provideCopyFrom)>)<endif>
@@ -1059,8 +1059,8 @@ impl\<'input> <struct.name>Ext\<'input>{
 
 pub trait <struct.name>Attrs\<'input>: <parser.name>Context\<'input> + BorrowMut\<<struct.name>Ext\<'input>\>{
 
-<struct.attributeDecls:{a | fn get_<a.name>\<'a>(&'a self) -> &'a <a.type> where 'input: 'a { &self.borrow().<a.name> \}  }; separator = "\n\n">
-<struct.attributeDecls:{a | fn set_<a.name>(&mut self,attr: <a.type>) { self.borrow_mut().<a.name> = attr; \}  }; separator = "\n\n">
+<struct.attributeDecls:{a | fn get_<a.name>\<'a>(&'a self) -> &'a <a.type> where 'input: 'a { &self.borrow().<a.escapedName> \}  }; separator = "\n\n">
+<struct.attributeDecls:{a | fn set_<a.name>(&mut self,attr: <a.type>) { self.borrow_mut().<a.escapedName> = attr; \}  }; separator = "\n\n">
 <getters:{g | <g>}; separator="\n">
 	<!<if(ctorAttrs)>pub fn new(parent: ParserRuleContext, invokingState:usize) { Self {base:super(parent, invokingState);} }<endif>!>
 
@@ -1126,11 +1126,11 @@ impl\<'input> <struct.name>Ext\<'input>{
 				<if(contextSuperClass)><contextSuperClass><else>BaseParserRuleContext<endif>::copy_from(ctx,<struct.name>Ext{
 					<!base:<currentRule.name; format="cap">ContextExt{..*base}!>
 					<!<struct.attrs:{a | <a.name>:None,}>!>
-					<struct.tokenDecls:{a | <a.name>:None, }>
-        			<struct.tokenTypeDecls:{a | <a.name>:-1, }>
-        			<struct.tokenListDecls:{a | <a.name>:Vec::new(), }>
-        			<struct.ruleContextDecls:{a | <a.name>:None, }>
-        			<struct.ruleContextListDecls:{a | <a.name>:Vec::new(), }>
+					<struct.tokenDecls:{a | <a.escapedName>:None, }>
+        			<struct.tokenTypeDecls:{a | <a.escapedName>:-1, }>
+        			<struct.tokenListDecls:{a | <a.escapedName>:Vec::new(), }>
+        			<struct.ruleContextDecls:{a | <a.escapedName>:None, }>
+        			<struct.ruleContextListDecls:{a | <a.escapedName>:Vec::new(), }>
         			base: ctx.borrow().clone(),
         			ph:PhantomData
         			<!<struct.ctorAttrs:{a | <a.name> }; separator=",\n">!>
@@ -1156,10 +1156,10 @@ fn accept(&self,visitor: &mut (dyn <parser.grammarName>Visitor\<'input> + 'a)) {
 }
 >>
 
-AttributeDecl(d) ::= "<d.name>: <d.type><if(d.initValue)> = <d.initValue><endif>"
+AttributeDecl(d) ::= "<d.escapedName>: <d.type><if(d.initValue)> = <d.initValue><endif>"
 
 /** If we don't know location of label def x, use this template */
-labelref(x,action) ::= "<if(!x.isLocal)><ctx_mut_action(x,{.<x.name><action>})><else><x.name><action><endif>"
+labelref(x,action) ::= "<if(!x.isLocal)><ctx_mut_action(x,{.<x.escapedName><action>})><else><x.escapedName><action><endif>"
 
 /** For any action chunk, what is correctly-typed context struct ptr? */
 //ctx(actionChunk) ::= "(cast::\<_,<actionChunk.ctx.name>>(&*_localctx))"
