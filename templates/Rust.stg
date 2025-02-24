@@ -664,7 +664,7 @@ LL1AltBlock(choice, preamble, alts, error) ::= <<
 <if(choice.label)><labelref(choice.label,{ = <self()>.base.input.lt(1).cloned();})><endif>
 <preamble; separator="\n">
 match <self()>.base.input.la(1) {
-<choice.altLook,alts:{look,alt| <cases(ttypes=look)>
+<choice.altLook,alts:{look,alt| <cases(tokens=look)>
 	=> {
 		<alt>
 	\}
@@ -677,7 +677,7 @@ LL1OptionalBlock(choice, alts, error) ::= <<
 <self()>.base.set_state(<choice.stateNumber>);
 <self()>.err_handler.sync(&mut <self()>.base)?;
 match <self()>.base.input.la(1) {
-<choice.altLook,alts:{look,alt| <cases(ttypes=look)>
+<choice.altLook,alts:{look,alt| <cases(tokens=look)>
 	=> {
     	<alt>
     \}
@@ -790,7 +790,7 @@ Sync(s) ::= "<self()>.err_handler.sync(<s.expecting.name>)?;"
 ThrowNoViableAlt(t) ::= "ANTLRError::NoAltError(NoViableAltError::new(&mut <self()>.base))"
 
 TestSetInline(s) ::= <<
-<s.bitsets:{bits | <if(rest(rest(bits.ttypes)))><bitsetBitfieldComparison(s, bits)><else><bitsetInlineComparison(s, bits)><endif>}; separator=" || ">
+<s.bitsets:{bits | <if(rest(rest(bits.tokens)))><bitsetBitfieldComparison(s, bits)><else><bitsetInlineComparison(s, bits)><endif>}; separator=" || ">
 >>
 
 // Java language spec 15.19 - shift operators mask operands rather than overflow to 0... need range test
@@ -798,9 +798,8 @@ testShiftInRange(shiftAmount) ::= <<
 ((<shiftAmount>) & !0x3f) == 0
 >>
 
-// produces smaller bytecode only when bits.ttypes contains more than two items
 bitsetBitfieldComparison(s, bits) ::= <%
-(<testShiftInRange({<offsetShift(s.varName, bits.shift)>})> && ((1usize \<\< <offsetShift(s.varName, bits.shift)>) & (<bits.ttypes:{ttype | (1usize \<\< <offsetShift(ttype, bits.shift)>)}; separator=" | ">)) != 0)
+(<testShiftInRange({<offsetShift(s.varName, bits.shift)>})> && ((1usize \<\< <offsetShift(s.varName, bits.shift)>) & <bits.calculated>) != 0)
 %>
 
 isZero ::= [
@@ -812,13 +811,12 @@ offsetShift(shiftAmount, offset) ::= <%
 <if(!isZero.(offset))>(<shiftAmount> - <offset>)<else><shiftAmount><endif>
 %>
 
-// produces more efficient bytecode when bits.ttypes contains at most two items
 bitsetInlineComparison(s, bits) ::= <%
-<bits.ttypes:{ttype | <s.varName>==<ttype>}; separator=" || ">
+<bits.tokens:{t | <s.varName>==<t.name>}; separator=" || ">
 %>
 
-cases(ttypes) ::= <<
-<ttypes:{t |  <t> }; separator="|",wrap>
+cases(tokens) ::= <<
+<tokens:{t |  <t.name> }; separator="|",wrap>
 >>
 
 InvokeRule(r, argExprsChunks) ::= <<
@@ -1268,18 +1266,18 @@ Lexer(lexer, atn, actionFuncs, sempredFuncs, superClass) ::= <<
 <if(lexer.tokens)>
 	<lexer.tokens:{k | pub const <k>:isize=<lexer.tokens.(k)>}; separator="; \n", wrap, anchor>;
 <endif>
-<if(lexer.channels)>
-	<lexer.channels:{c | pub const <c>: usize=<lexer.channels.(c)>}; separator="; \n ", wrap, anchor>;
+<if(lexer.escapedChannels)>
+	<lexer.escapeChannels:{c | pub const <c>: usize=<lexer.escapedChannels.(c)>}; separator="; \n ", wrap, anchor>;
 <endif>
-<if(rest(lexer.modes))>
-	<rest(lexer.modes):{m | pub const <m>: usize=<i>}; separator="; \n", wrap, anchor>;
+<if(rest(lexer.escapedModeNames))>
+	<rest(lexer.escapedModeNames):{m | pub const <m>: usize=<i>}; separator="; \n", wrap, anchor>;
 <endif>
-	pub const channelNames: [&'static str;<length(lexer.channels)>+2] = [
-		"DEFAULT_TOKEN_CHANNEL", "HIDDEN"<if (lexer.channels)>, <lexer.channels:{c| "<c>"}; separator=", ", wrap, anchor><endif>
+	pub const channelNames: [&'static str;<length(lexer.channelNames)>+2] = [
+		"DEFAULT_TOKEN_CHANNEL", "HIDDEN"<if (lexer.channelNames)>, <lexer.channelNames:{c| "<c>"}; separator=", ", wrap, anchor><endif>
 	];
 
 	pub const modeNames: [&'static str;<length(lexer.modes)>] = [
-		<lexer.modes:{m| "<m>"}; separator=", ", wrap, anchor>
+		<lexer.escapedModeNames:{m| "<m>"}; separator=", ", wrap, anchor>
 	];
 
 	pub const ruleNames: [&'static str;<length(lexer.ruleNames)>] = [
@@ -1430,23 +1428,9 @@ lazy_static! {
 }
 
 
-
-<if(rest(model.segments))>
-<! requires segmented representation !>
-private static final int _serializedATNSegments = <length(model.segments)>;
-<model.segments:{segment|private static final String _serializedATNSegment<i0> =
-	"<segment; wrap={"+<\n><\t>"}>";}; separator="\n">
-public static final String _serializedATN = Utils.join(
-	new String[] {
-		<model.segments:{segment | _serializedATNSegment<i0>}; separator=",\n">
-	},
-	""
-);
-<else>
 <! only one segment, can be inlined !>
-const _serializedATN:&'static str =
+const _serializedATN: &'static str =
 	"<model.serialized; wrap={\\<\n><\t>}>";
-<endif>
 <!	org.antlr.v4.tool.DOTGenerator dot = new org.antlr.v4.tool.DOTGenerator(null);!>
 <!	System.out.println(dot.getDOT(_ATN.decisionToState.get(0), ruleNames, false));!>
 <!	System.out.println(dot.getDOT(_ATN.ruleToStartState[2], ruleNames, false));!>
