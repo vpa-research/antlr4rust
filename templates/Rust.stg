@@ -243,7 +243,7 @@ where
     I: TokenStream\<'input, TF = <TokenFactory()> > + TidAble\<'input>,
     H: ErrorStrategy\<'input,BaseParserType\<'input,I>\>
 {
-	pub fn get_serialized_atn() -> &'static str { _serializedATN }
+	pub fn get_serialized_atn() -> &'static [isize] { _serializedATN }
 
     pub fn set_error_strategy(&mut self, strategy: H) {
         self.err_handler = strategy
@@ -1412,7 +1412,8 @@ SerializedATN(model) ::= <<
 
 lazy_static! {
     static ref _ATN: Arc\<ATN> =
-        Arc::new(ATNDeserializer::new(None).deserialize(_serializedATN.chars()));
+        Arc::new(ATNDeserializer::new(None).deserialize(_serializedATN));
+
     static ref _decision_to_DFA: Arc\<Vec\<antlr_rust::RwLock\<DFA>\>> = {
         let mut dfa = Vec::new();
         let size = _ATN.decision_to_state.len();
@@ -1429,8 +1430,9 @@ lazy_static! {
 
 
 <! only one segment, can be inlined !>
-const _serializedATN: &'static str =
-	"<model.serialized; wrap={\\<\n><\t>}>";
+const _serializedATN: &'static [isize] = &[
+    <model.serialized: {s | <s>}; separator=",", wrap={<\n>    }>
+];
 <!	org.antlr.v4.tool.DOTGenerator dot = new org.antlr.v4.tool.DOTGenerator(null);!>
 <!	System.out.println(dot.getDOT(_ATN.decisionToState.get(0), ruleNames, false));!>
 <!	System.out.println(dot.getDOT(_ATN.ruleToStartState[2], ruleNames, false));!>

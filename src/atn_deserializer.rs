@@ -48,19 +48,12 @@ pub struct ATNDeserializer {
 impl ATNDeserializer {
     pub fn new(options: Option<ATNDeserializationOptions>) -> ATNDeserializer {
         ATNDeserializer {
-            deserialization_options: options.unwrap_or(ATNDeserializationOptions::default()),
+            deserialization_options: options.unwrap_or_default(),
         }
     }
 
-    pub fn deserialize(&self, data: Chars<'_>) -> ATN {
-        let mut data = data.clone().map(|ch| {
-            let mut ch = ch as isize;
-            // decode surrogates
-            ch = if ch > 0xFFFF { ch - 0x3000 } else { ch };
-            ch -= 2;
-            ch
-        });
-
+    pub fn deserialize(&self, data: &[isize]) -> ATN {
+        let mut data = data.iter().copied();
         self.check_version(data.next().unwrap() + 2);
 
         let _uuid = self.check_uuid(&mut data);
