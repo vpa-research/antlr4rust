@@ -84,12 +84,6 @@
 //! [`TokenStream`]: crate::token_stream::TokenStream
 //! [`ParserRuleContext`]: crate::parser_rule_context::ParserRuleContext
 
-#[macro_use]
-extern crate lazy_static;
-
-#[doc(hidden)]
-pub use lazy_static::lazy_static;
-
 #[doc(hidden)]
 pub use parking_lot::RwLock;
 

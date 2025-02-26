@@ -78,11 +78,10 @@ use super::<file.grammarName; format="low">listener::*;
 use super::<file.grammarName; format="low">visitor::*;
 <endif>
 
-use antlr_rust::lazy_static;
 use antlr_rust::{TidAble,TidExt};
 
 use std::marker::PhantomData;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::rc::Rc;
 use std::convert::TryFrom;
 use std::cell::RefCell;
@@ -408,10 +407,13 @@ pub const _LITERAL_NAMES: [Option\<&'static str>;<length(literalNames)>] = [
 pub const _SYMBOLIC_NAMES: [Option\<&'static str>;<length(symbolicNames)>]  = [
 	<symbolicNames:{t | Some(<t>)}; null="None", separator=", ", wrap, anchor>
 ];
-lazy_static!{
-    static ref _shared_context_cache: Arc\<PredictionContextCache> = Arc::new(PredictionContextCache::new());
-	static ref VOCABULARY: Box\<dyn Vocabulary> = Box::new(VocabularyImpl::new(_LITERAL_NAMES.iter(), _SYMBOLIC_NAMES.iter(), None));
-}
+
+static _shared_context_cache: LazyLock\<Arc\<PredictionContextCache\>\> = LazyLock::new(||
+    Arc::new(PredictionContextCache::new())
+);
+static VOCABULARY: LazyLock\<Box\<dyn Vocabulary + Send\>\> = LazyLock::new(||
+    Box::new(VocabularyImpl::new(_LITERAL_NAMES.iter(), _SYMBOLIC_NAMES.iter(), None))
+);
 >>
 
 dumpActions(recog, argFuncs, actionFuncs, sempredFuncs) ::= <<
@@ -1250,9 +1252,9 @@ use antlr_rust::rule_context::{BaseRuleContext,EmptyCustomRuleContext,EmptyConte
 use antlr_rust::parser_rule_context::{ParserRuleContext,BaseParserRuleContext,cast};
 use antlr_rust::vocabulary::{Vocabulary,VocabularyImpl};
 
-use antlr_rust::{lazy_static,Tid,TidAble,TidExt};
+use antlr_rust::{Tid,TidAble,TidExt};
 
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::marker::PhantomData;
@@ -1410,28 +1412,25 @@ impl\<'input, Input:CharStream\<From\<'input> >\> TokenSource\<'input> for <lexe
 
 SerializedATN(model) ::= <<
 
-lazy_static! {
-    static ref _ATN: Arc\<ATN> =
-        Arc::new(ATNDeserializer::new(None).deserialize(_serializedATN));
+static _ATN: LazyLock\<Arc\<ATN\>\> = LazyLock::new(||
+	Arc::new(ATNDeserializer::new(None).deserialize(_serializedATN))
+);
 
-    static ref _decision_to_DFA: Arc\<Vec\<antlr_rust::RwLock\<DFA>\>> = {
-        let mut dfa = Vec::new();
-        let size = _ATN.decision_to_state.len();
-        for i in 0..size {
-            dfa.push(DFA::new(
-                _ATN.clone(),
-                _ATN.get_decision_state(i),
-                i as isize,
-            ).into())
-        }
-        Arc::new(dfa)
-    };
-}
+static _decision_to_DFA: LazyLock\<Arc\<Vec\<antlr_rust::RwLock\<DFA>\>\>\> = LazyLock::new(|| {
+	let mut dfa = Vec::new();
+	let size = _ATN.decision_to_state.len();
+	for i in 0..size {
+		dfa.push(DFA::new(
+			_ATN.clone(),
+			_ATN.get_decision_state(i),
+			i as isize,
+		).into())
+	}
+	Arc::new(dfa)
+});
 
-
-<! only one segment, can be inlined !>
 const _serializedATN: &'static [isize] = &[
-    <model.serialized: {s | <s>}; separator=",", wrap={<\n>    }>
+    <model.serialized: {s | <s>}; separator=",", wrap>
 ];
 <!	org.antlr.v4.tool.DOTGenerator dot = new org.antlr.v4.tool.DOTGenerator(null);!>
 <!	System.out.println(dot.getDOT(_ATN.decisionToState.get(0), ruleNames, false));!>
