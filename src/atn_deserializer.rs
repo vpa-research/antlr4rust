@@ -1,10 +1,3 @@
-use std::str::Chars;
-use std::str::FromStr;
-
-use byteorder::LittleEndian;
-use byteorder::WriteBytesExt;
-use uuid::Uuid;
-
 use crate::atn::ATN;
 use crate::atn_deserialization_options::ATNDeserializationOptions;
 use crate::atn_state::ATNBlockStart;
@@ -21,24 +14,7 @@ use crate::lexer_action::*;
 use crate::transition::Transition;
 use crate::transition::*;
 
-lazy_static! {
-    static ref BASE_SERIALIZED_UUID: Uuid =
-        Uuid::from_str("33761B2D-78BB-4A43-8B0B-4F5BEE8AACF3").unwrap();
-    static ref ADDED_PRECEDENCE_TRANSITIONS: Uuid =
-        Uuid::from_str("1DA0C57D-6C06-438A-9B27-10BCB3CE0F61").unwrap();
-    static ref ADDED_LEXER_ACTIONS: Uuid =
-        Uuid::from_str("AADB8D7E-AEEF-4415-AD2B-8204D6CF042E").unwrap();
-    static ref ADDED_UNICODE_SMP: Uuid =
-        Uuid::from_str("59627784-3BE5-417A-B9EB-8131A7286089").unwrap();
-    static ref SUPPORTED_UUIDS: Vec<Uuid> = vec![
-        *BASE_SERIALIZED_UUID,
-        *ADDED_PRECEDENCE_TRANSITIONS,
-        *ADDED_LEXER_ACTIONS,
-        *ADDED_UNICODE_SMP,
-    ];
-}
-
-const SERIALIZED_VERSION: isize = 3;
+const SERIALIZED_VERSION: isize = 4;
 
 #[derive(Debug)]
 pub struct ATNDeserializer {
@@ -54,9 +30,7 @@ impl ATNDeserializer {
 
     pub fn deserialize(&self, data: &[isize]) -> ATN {
         let mut data = data.iter().copied();
-        self.check_version(data.next().unwrap() + 2);
-
-        let _uuid = self.check_uuid(&mut data);
+        self.check_version(data.next().unwrap());
 
         let mut atn = self.read_atn(&mut data);
 
@@ -64,13 +38,7 @@ impl ATNDeserializer {
         self.read_rules(&mut atn, &mut data);
         self.read_modes(&mut atn, &mut data);
 
-        let mut sets = self.read_sets(&mut atn, &mut data, |data| {
-            data.next().unwrap() as u16 as isize
-        });
-
-        sets.extend(self.read_sets(&mut atn, &mut data, |data| {
-            (data.next().unwrap() & 0xFFFF) | data.next().unwrap() << 16
-        }));
+        let sets = self.read_sets(&mut atn, &mut data, |data| data.next().unwrap());
 
         self.read_edges(&mut atn, &mut data, &sets);
         self.read_decisions(&mut atn, &mut data);
@@ -101,33 +69,15 @@ impl ATNDeserializer {
         }
     }
 
-    fn check_uuid(&self, data: &mut dyn Iterator<Item = isize>) -> Uuid {
-        //rust uses UTF-8 encoding so we need explicitly convert unicode
-        //codepoint numbers to bytes
-        let mut bytes = Vec::new();
-        for i in data.take(8) {
-            bytes.write_u16::<LittleEndian>(i as u16).unwrap();
-        }
-
-        bytes.reverse();
-        let uuid = Uuid::from_slice(&bytes).unwrap();
-        if !SUPPORTED_UUIDS.contains(&uuid) {
-            panic!("Could not deserialize ATN with UUID {}", uuid)
-        }
-        uuid
-    }
-
     fn read_atn(&self, data: &mut dyn Iterator<Item = isize>) -> ATN {
-        let atn = ATN::new_atn(
+        ATN::new_atn(
             match data.next() {
                 Some(0) => ATNType::LEXER,
                 Some(1) => ATNType::PARSER,
                 _ => panic!("invalid ATN type"),
             },
             data.next().unwrap(),
-        );
-
-        atn
+        )
     }
 
     fn read_states(&self, atn: &mut ATN, data: &mut dyn Iterator<Item = isize>) {
@@ -171,18 +121,15 @@ impl ATNDeserializer {
             }
         }
 
-        //if (supportsPrecedencePredicates)
-        if true {
-            let num_precedence_states = data.next().unwrap();
-            for _ in 0..num_precedence_states {
-                let st = data.next().unwrap() as usize;
-                if let ATNStateType::RuleStartState {
-                    is_left_recursive: left_rec,
-                    ..
-                } = atn.states[st].get_state_type_mut()
-                {
-                    *left_rec = true
-                }
+        let num_precedence_states = data.next().unwrap();
+        for _ in 0..num_precedence_states {
+            let st = data.next().unwrap() as usize;
+            if let ATNStateType::RuleStartState {
+                is_left_recursive: left_rec,
+                ..
+            } = atn.states[st].get_state_type_mut()
+            {
+                *left_rec = true
             }
         }
     }
