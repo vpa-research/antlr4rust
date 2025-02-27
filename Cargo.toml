@@ -1,13 +1,13 @@
 [package]
 name = "antlr-rust"
-version = "0.3.0-beta"
+version = "0.4.0-beta"
 authors = ["Konstantin Anisimov <rrevenantt@gmail.com>"]
 homepage = "https://github.com/rrevenantt/antlr4rust"
 repository = "https://github.com/rrevenantt/antlr4rust"
 documentation = "https://docs.rs/antlr-rust"
 description = "ANTLR4 runtime for Rust"
 readme = "README.md"
-edition = "2018"
+edition = "2024"
 license = "BSD-3-Clause"
 keywords = ["ANTLR","ANTLR4","parsing","runtime"]
 categories = ["parsing"]
