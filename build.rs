@@ -1,11 +1,10 @@
-use std::convert::TryInto;
 use std::env;
-use std::env::VarError;
 use std::error::Error;
-use std::fs::{read_dir, DirEntry, File};
-use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+
+const ANTLR_PATH_ENV: &str = "ANTLR_PATH";
+const DEFAULT_ANTLR_PATH: &str = "../../tool/target/antlr4-4.13.2-complete.jar";
 
 fn main() {
     let grammars = vec![
@@ -27,30 +26,33 @@ fn main() {
         None,
         None,
     ];
-    let antlr_path = "/home/rrevenantt/dev/antlr4/tool/target/antlr4-4.8-2-SNAPSHOT-complete.jar";
+    let antlr_path = env::var_os(ANTLR_PATH_ENV)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| DEFAULT_ANTLR_PATH.into());
 
     for (grammar, arg) in grammars.into_iter().zip(additional_args) {
         //ignoring error because we do not need to run anything when deploying to crates.io
-        let _ = gen_for_grammar(grammar, antlr_path, arg);
+        let _ = gen_for_grammar(grammar, &antlr_path, arg);
     }
 
     println!("cargo:rerun-if-changed=build.rs");
 
-    println!("cargo:rerun-if-changed=/home/rrevenantt/dev/antlr4/tool/target/antlr4-4.8-2-SNAPSHOT-complete.jar");
+    println!("cargo:rerun-if-env-changed={ANTLR_PATH_ENV}");
+    println!("cargo:rerun-if-changed={}", antlr_path.display());
 }
 
 fn gen_for_grammar(
     grammar_file_name: &str,
-    antlr_path: &str,
+    antlr_path: &Path,
     additional_arg: Option<&str>,
-) -> Result<(), Box<Error>> {
+) -> Result<(), Box<dyn Error>> {
     // let out_dir = env::var("OUT_DIR").unwrap();
     // let dest_path = Path::new(&out_dir);
 
     let input = env::current_dir().unwrap().join("grammars");
     let file_name = grammar_file_name.to_owned() + ".g4";
 
-    let c = Command::new("java")
+    let _c = Command::new("java")
         .current_dir(input)
         .arg("-cp")
         .arg(antlr_path)
