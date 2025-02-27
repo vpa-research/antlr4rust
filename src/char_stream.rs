@@ -11,7 +11,7 @@ pub trait CharStream<Data>: IntStream {
     /// Returns underlying data piece, either slice or owned copy.
     /// Panics if provided indexes are invalid
     /// Called by parser only on token intervals.
-    /// This fact can be used by custom implementations  
+    /// This fact can be used by custom implementations
     fn get_text(&self, a: isize, b: isize) -> Data;
 }
 

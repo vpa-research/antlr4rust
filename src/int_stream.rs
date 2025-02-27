@@ -10,15 +10,15 @@ pub trait IntStream {
     /// Consumes the current symbol in the stream.
     /// Advances this stream to the next element.
     ///
-    ///	This method has the following
+    /// This method has the following
     /// effects:
     ///
     ///  - Forward movement: The value of `index`
-    ///		before calling this method is less than the value of `index`
-    ///		after calling this method.
+    ///    calling this method is less than the value of `index`
+    ///    calling this method.
     ///  - Ordered lookahead: The value of {@code LA(1)} before
-    ///		calling this method becomes the value of {@code LA(-1)} after calling
-    ///		this method.
+    ///    this method becomes the value of {@code LA(-1)} after calling
+    ///    method.
     ///
     /// Note that calling this method does not guarantee that `index()` is
     /// incremented by exactly 1.
@@ -71,7 +71,7 @@ pub trait IntStream {
 #[derive(Debug)]
 pub struct IterWrapper<'a, T: IntStream>(pub &'a mut T);
 
-impl<'a, T: IntStream> Iterator for IterWrapper<'a, T> {
+impl<T: IntStream> Iterator for IterWrapper<'_, T> {
     type Item = isize;
 
     fn next(&mut self) -> Option<Self::Item> {

@@ -26,7 +26,7 @@ use better_any::{Tid, TidAble};
 /// during a parse by ANTLR-generated parsers. We distinguish between three
 /// different kinds of errors:
 ///  - The parser could not figure out which path to take in the ATN (none of
-/// the available alternatives could possibly match)
+///    the available alternatives could possibly match)
 ///  - The current input does not match what we were looking for
 ///  - A predicate evaluated to false
 ///
@@ -74,7 +74,7 @@ pub trait ErrorStrategy<'a, T: Parser<'a>>: Tid<'a> {
 
     /// Tests whether or not {@code recognizer} is in the process of recovering
     /// from an error. In error recovery mode, `Parser::consume` will create
-    /// `ErrorNode` leaf instead of `TerminalNode` one  
+    /// `ErrorNode` leaf instead of `TerminalNode` one
     fn in_error_recovery_mode(&mut self, recognizer: &mut T) -> bool;
 
     /// Report any kind of `ANTLRError`. This method is called by
@@ -382,7 +382,7 @@ impl<'input, Ctx: ParserNodeType<'input>> DefaultErrorStrategy<'input, Ctx> {
             ctx = c.get_parent_ctx();
         }
         recover_set.remove_one(TOKEN_EPSILON);
-        return recover_set;
+        recover_set
     }
 
     fn consume_until<T: Parser<'input, Node = Ctx, TF = Ctx::TF>>(
@@ -521,7 +521,7 @@ impl<'a, T: Parser<'a>> ErrorStrategy<'a, T> for DefaultErrorStrategy<'a, T::Nod
             _ => e.to_string(),
         };
         let offending_token_index = e.get_offending_token().map(|it| it.get_token_index());
-        recognizer.notify_error_listeners(msg, offending_token_index, Some(&e))
+        recognizer.notify_error_listeners(msg, offending_token_index, Some(e))
     }
 
     fn report_match(&mut self, recognizer: &mut T) {
@@ -539,15 +539,15 @@ impl<'a, T: Parser<'a>> ErrorStrategy<'a, T> for DefaultErrorStrategy<'a, T::Nod
 /// <p> This error strategy is useful in the following scenarios.</p>
 ///
 ///  - Two-stage parsing: This error strategy allows the first
-/// stage of two-stage parsing to immediately terminate if an error is
-/// encountered, and immediately fall back to the second stage. In addition to
-/// avoiding wasted work by attempting to recover from errors here, the empty
-/// implementation of `sync` improves the performance of
-/// the first stage.
+///    stage of two-stage parsing to immediately terminate if an error is
+///    encountered, and immediately fall back to the second stage. In addition to
+///    avoiding wasted work by attempting to recover from errors here, the empty
+///    implementation of `sync` improves the performance of
+///    the first stage.
 ///  - Silent validation: When syntax errors are not being
-/// reported or logged, and the parse result is simply ignored if errors occur,
-/// the `BailErrorStrategy` avoids wasting work on recovering from errors
-/// when the result will be ignored either way.
+///    reported or logged, and the parse result is simply ignored if errors occur,
+///    the `BailErrorStrategy` avoids wasting work on recovering from errors
+///    when the result will be ignored either way.
 ///
 /// # Usage
 /// ```ignore
@@ -581,9 +581,8 @@ impl<'input, Ctx: ParserNodeType<'input>> BailErrorStrategy<'input, Ctx> {
                 ctx.set_exception(e.clone());
                 ctx = ctx.get_parent()?
             }
-            Some(())
         })();
-        return ANTLRError::FallThrough(Rc::new(ParseCancelledError(e.clone())));
+        ANTLRError::FallThrough(Rc::new(ParseCancelledError(e.clone())))
     }
 }
 
@@ -622,7 +621,7 @@ impl<'a, T: Parser<'a>> ErrorStrategy<'a, T> for BailErrorStrategy<'a, T::Node> 
 
     #[cold]
     fn recover(&mut self, recognizer: &mut T, e: &ANTLRError) -> Result<(), ANTLRError> {
-        Err(self.process_error(recognizer, &e))
+        Err(self.process_error(recognizer, e))
     }
 
     #[inline(always)]

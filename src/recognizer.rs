@@ -6,16 +6,37 @@ use crate::vocabulary::Vocabulary;
 
 /// Major version of this runtime.
 /// Used by generated parser to verify that it is compatible with current version of runtime
-pub const VERSION_MAJOR: &'static str = env!("CARGO_PKG_VERSION_MAJOR");
+pub const VERSION_MAJOR: &str = env!("CARGO_PKG_VERSION_MAJOR");
 /// Major version of this runtime.
 /// Used by generated parser to verify that it is compatible with current version of runtime
-pub const VERSION_MINOR: &'static str = env!("CARGO_PKG_VERSION_MINOR");
+pub const VERSION_MINOR: &str = env!("CARGO_PKG_VERSION_MINOR");
 
-// todo move to compile time check when it will be possible to compare strings in constants
+const fn str_eq(lhs: &str, rhs: &str) -> bool {
+    if lhs.len() != rhs.len() {
+        return false;
+    }
+
+    let lhs = lhs.as_bytes();
+    let rhs = rhs.as_bytes();
+    let mut i = 0;
+
+    while i < lhs.len() {
+        if lhs[i] != rhs[i] {
+            return false;
+        }
+
+        i += 1;
+    }
+
+    true
+}
+
 /// Used by generated parser to verify that it is compatible with current version of runtime
-pub fn check_version(major: &str, minor: &str) {
-    assert!(major == VERSION_MAJOR && minor == VERSION_MINOR,
-            "parser is not compatible with current runtime version, please generate parser with the latest version of ANTLR")
+pub const fn check_version(major: &str, minor: &str) {
+    assert!(
+        str_eq(major, VERSION_MAJOR) && str_eq(minor, VERSION_MINOR),
+        "parser is not compatible with current runtime version, please generate parser with the latest version of ANTLR",
+    )
 }
 //todo just a reminder to update version to be inserted in generated parser,
 //const _:[();0-!(VERSION_MAJOR == "0" && VERSION_MINOR == "2") as usize] = [];

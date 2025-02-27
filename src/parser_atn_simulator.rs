@@ -7,7 +7,7 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
-use std::{ptr, usize};
+use std::ptr;
 
 use bit_set::BitSet;
 
@@ -618,7 +618,7 @@ impl ParserATNSimulator {
         }
 
         //        println!("result {:?}",&reach);
-        return Some(reach);
+        Some(reach)
     }
 
     fn has_config_in_rule_stop_state(&self, configs: &ATNConfigSet) -> bool {
@@ -627,7 +627,7 @@ impl ParserATNSimulator {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     fn all_configs_in_rule_stop_state(&self, configs: &ATNConfigSet) -> bool {
@@ -637,7 +637,7 @@ impl ParserATNSimulator {
                 return false;
             }
         }
-        return true;
+        true
     }
 
     fn remove_all_configs_not_in_rule_stop_state(
@@ -810,7 +810,7 @@ impl ParserATNSimulator {
         if npred_alts == 0 {
             return None;
         }
-        return Some(alt_to_pred);
+        Some(alt_to_pred)
     }
 
     fn get_predicate_predictions(
@@ -900,7 +900,7 @@ impl ParserATNSimulator {
             }
         }
 
-        return alts.get_min().unwrap_or(INVALID_ALT);
+        alts.get_min().unwrap_or(INVALID_ALT)
     }
 
     fn eval_semantic_context<'a, T: Parser<'a>>(
@@ -1027,7 +1027,7 @@ impl ParserATNSimulator {
                         config.semantic_context.clone(),
                     );
                     c.set_reaches_into_outer_context(config.get_reaches_into_outer_context());
-                    assert!(depth > isize::min_value());
+                    assert!(depth > isize::MIN);
                     self.closure_checking_stop_state(
                         c,
                         configs,
@@ -1043,7 +1043,6 @@ impl ParserATNSimulator {
             } else if full_ctx {
                 configs.add_cached(Box::new(config), Some(local.merge_cache));
                 return;
-            } else {
             }
         }
         self.closure_work(
@@ -1116,17 +1115,15 @@ impl ParserATNSimulator {
                         continue;
                     }
                     configs.set_dips_into_outer_context(true);
-                    assert!(new_depth > isize::min_value());
+                    assert!(new_depth > isize::MIN);
                     new_depth -= 1;
                 } else {
                     if !tr.is_epsilon() && !closure_busy.insert(c.clone()) {
                         continue;
                     }
 
-                    if tr.get_serialization_type() == TransitionType::TRANSITION_RULE {
-                        if new_depth >= 0 {
-                            new_depth += 1
-                        }
+                    if tr.get_serialization_type() == TransitionType::TRANSITION_RULE && new_depth >= 0 {
+                        new_depth += 1
                     }
                 }
 
@@ -1222,7 +1219,7 @@ impl ParserATNSimulator {
         }
         //        println!("dropping on state {} ", state.get_state_number());
 
-        return true;
+        true
     }
     //
     //    fn get_rule_name(&self, index: isize) -> String { unimplemented!() }
@@ -1326,7 +1323,7 @@ impl ParserATNSimulator {
         local: &mut Local<'_, 'a, T>,
     ) -> Option<ATNConfig> {
         let target = self.atn().states[pt.target].deref();
-        if collect_predicates && (!pt.is_ctx_dependent || (pt.is_ctx_dependent && in_context)) {
+        if collect_predicates && (!pt.is_ctx_dependent || in_context) {
             if full_ctx {
                 let curr_pos = local.input().index();
                 local.input().seek(self.start_index.get());
@@ -1368,13 +1365,13 @@ impl ParserATNSimulator {
 
     //todo can return Cow
     fn get_conflicting_alts_or_unique_alt(&self, configs: &ATNConfigSet) -> BitSet {
-        return if configs.get_unique_alt() != INVALID_ALT {
+        if configs.get_unique_alt() != INVALID_ALT {
             BitSet::new().modify_with(|it| {
                 it.insert(configs.get_unique_alt() as usize);
             })
         } else {
             configs.conflicting_alts.clone()
-        };
+        }
     }
     //
     //    fn get_token_name(&self, t: isize) -> String { unimplemented!() }
@@ -1453,7 +1450,7 @@ impl ParserATNSimulator {
         //        if key != new_hash {
         dfa.states_map
             .entry(key)
-            .or_insert(Vec::new())
+            .or_default()
             .push(state_number);
         //        }
         state_number

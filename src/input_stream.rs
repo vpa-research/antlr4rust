@@ -5,8 +5,6 @@ use crate::char_stream::{CharStream, InputData};
 use crate::int_stream::IntStream;
 use std::ops::Deref;
 
-use better_any::TidAble;
-
 /// Default rust target input stream.
 ///
 /// Since Rust uses UTF-8 format which does not support indexing by char,
@@ -60,7 +58,7 @@ where
     }
 }
 
-impl<'a, T> CharStream<String> for InputStream<&'a [T]>
+impl<T> CharStream<String> for InputStream<&[T]>
 where
     [T]: InputData,
 {
@@ -69,7 +67,7 @@ where
     }
 }
 
-impl<'a, 'b, T> CharStream<Cow<'b, str>> for InputStream<&'a [T]>
+impl<'b, T> CharStream<Cow<'b, str>> for InputStream<&[T]>
 where
     [T]: InputData,
 {
@@ -102,11 +100,11 @@ impl<Data: ?Sized + InputData> InputStream<Box<Data>> {
         .to_owned()
     }
 
-    /// Creates new `InputStream` over owned data   
+    /// Creates new `InputStream` over owned data
     pub fn new_owned(data: Box<Data>) -> Self {
         Self {
             name: "<empty>".to_string(),
-            data_raw: data.into(),
+            data_raw: data,
             index: 0,
         }
     }
@@ -143,7 +141,7 @@ where
         }
     }
 }
-impl<'a, Data: Deref> InputStream<Data>
+impl<Data: Deref> InputStream<Data>
 where
     Data::Target: InputData,
 {
@@ -154,7 +152,7 @@ where
     }
 }
 
-impl<'a, Data: Deref> IntStream for InputStream<Data>
+impl<Data: Deref> IntStream for InputStream<Data>
 where
     Data::Target: InputData,
 {

@@ -4,7 +4,6 @@ use std::cell::Cell;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::usize;
 
 use crate::atn::ATN;
 use crate::atn_config::{ATNConfig, ATNConfigType};
@@ -245,10 +244,9 @@ impl LexerATNSimulator {
                 self.consume(lexer.input());
             }
 
-            if self.capture_sim_state(dfa.as_ref().unwrap(), lexer.input(), target) {
-                if symbol == EOF {
-                    break;
-                }
+            if self.capture_sim_state(dfa.as_ref().unwrap(), lexer.input(), target) && symbol == EOF
+            {
+                break;
             }
 
             symbol = lexer.input().la(1);
@@ -405,7 +403,7 @@ impl LexerATNSimulator {
         }
     }
 
-    fn accept<'input>(&mut self, input: &mut impl IntStream) {
+    fn accept(&mut self, input: &mut impl IntStream) {
         input.seek(self.prev_accept.index);
         self.current_pos.line.set(self.prev_accept.line);
         self.current_pos
@@ -584,11 +582,11 @@ impl LexerATNSimulator {
             TransitionType::TRANSITION_RANGE
             | TransitionType::TRANSITION_SET
             | TransitionType::TRANSITION_ATOM => {
-                if _treat_eofas_epsilon {
-                    if _trans.matches(EOF, LEXER_MIN_CHAR_VALUE, LEXER_MAX_CHAR_VALUE) {
-                        let target = self.atn().states[_trans.get_target()].as_ref();
-                        result = Some(_config.cloned(target));
-                    }
+                if _treat_eofas_epsilon
+                    && _trans.matches(EOF, LEXER_MIN_CHAR_VALUE, LEXER_MAX_CHAR_VALUE)
+                {
+                    let target = self.atn().states[_trans.get_target()].as_ref();
+                    result = Some(_config.cloned(target));
                 }
             }
             TransitionType::TRANSITION_WILDCARD => {}
@@ -625,7 +623,7 @@ impl LexerATNSimulator {
         self.current_pos.line.set(saved_line);
         lexer.input().seek(index);
         lexer.input().release(marker);
-        return result;
+        result
     }
 
     fn capture_sim_state(
@@ -649,7 +647,7 @@ impl LexerATNSimulator {
     }
 
     fn add_dfaedge(&self, _from: &mut DFAState, t: isize, _to: DFAStateRef) {
-        if t < MIN_DFA_EDGE || t > MAX_DFA_EDGE {
+        if !(MIN_DFA_EDGE..=MAX_DFA_EDGE).contains(&t) {
             return;
         }
 
@@ -677,9 +675,7 @@ impl LexerATNSimulator {
                 //println!("accepted rule {} on state {}",rule_index,c.get_state());
                 (
                     self.atn().rule_to_token_type[rule_index],
-                    c.get_lexer_executor()
-                        .map(LexerActionExecutor::clone)
-                        .map(Box::new),
+                    c.get_lexer_executor().cloned().map(Box::new),
                 )
             });
 

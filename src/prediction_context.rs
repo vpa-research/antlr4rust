@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Display, Error, Formatter};
 use std::hash::{BuildHasher, Hash, Hasher};
@@ -89,7 +90,7 @@ impl PartialEq for SingletonPredictionContext {
 impl SingletonPredictionContext {
     #[inline(always)]
     fn is_empty(&self) -> bool {
-        self.return_state == PREDICTION_CONTEXT_EMPTY_RETURN_STATE && self.parent_ctx == None
+        self.return_state == PREDICTION_CONTEXT_EMPTY_RETURN_STATE && self.parent_ctx.is_none()
     }
 }
 
@@ -99,12 +100,10 @@ impl Display for PredictionContext {
             Singleton(s) => {
                 if s.return_state == PREDICTION_CONTEXT_EMPTY_RETURN_STATE {
                     f.write_str("$")
+                } else if let Some(parent) = &s.parent_ctx {
+                    f.write_fmt(format_args!("{} {}", s.return_state, parent))
                 } else {
-                    if let Some(parent) = &s.parent_ctx {
-                        f.write_fmt(format_args!("{} {}", s.return_state, parent))
-                    } else {
-                        f.write_fmt(format_args!("{}", s.return_state))
-                    }
+                    f.write_fmt(format_args!("{}", s.return_state))
                 }
             }
             Array(arr) => {
@@ -314,8 +313,9 @@ impl PredictionContext {
 
         let r = match (a.deref(), b.deref()) {
             (PredictionContext::Singleton(sa), PredictionContext::Singleton(sb)) => {
+                #[allow(clippy::let_and_return)]
                 let result = Self::merge_singletons(sa, sb, root_is_wildcard, merge_cache);
-                //                println!("single result = {}",result);
+                // println!("single result = {}",result);
                 result
             }
             (sa, sb) => {
@@ -332,6 +332,7 @@ impl PredictionContext {
                     Self::merge_arrays(sa.to_array(), sb.to_array(), root_is_wildcard, merge_cache)
                         .alloc();
 
+                #[allow(clippy::let_and_return)]
                 let result = if &*result == sa {
                     a.clone()
                 } else if &*result == sb {
@@ -339,7 +340,7 @@ impl PredictionContext {
                 } else {
                     result //.alloc()
                 };
-                //                println!("array result = {}",result);
+                // println!("array result = {}",result);
 
                 result
             }
@@ -350,7 +351,7 @@ impl PredictionContext {
             //                .insert(b.clone(),r.clone());
             cache.insert((a.clone(), b.clone()), r.clone());
         }
-        return r;
+        r
     }
 
     fn merge_singletons(
@@ -451,36 +452,42 @@ impl PredictionContext {
         while i < a.parents.len() && j < b.parents.len() {
             let a_parent = a.parents[i].as_ref();
             let b_parent = b.parents[j].as_ref();
-            if a.return_states[i] == b.return_states[j] {
-                let payload = a.return_states[i];
-                let both = payload == PREDICTION_CONTEXT_EMPTY_RETURN_STATE
-                    && a_parent.is_none()
-                    && b_parent.is_none();
-                let ax_ax = a_parent.is_some() && b_parent.is_some() && a_parent == b_parent;
+            match a.return_states[i].cmp(&b.return_states[j]) {
+                Ordering::Equal => {
+                    let payload = a.return_states[i];
+                    let both = payload == PREDICTION_CONTEXT_EMPTY_RETURN_STATE
+                        && a_parent.is_none()
+                        && b_parent.is_none();
+                    let ax_ax = a_parent.is_some() && b_parent.is_some() && a_parent == b_parent;
 
-                if both || ax_ax {
-                    merged.return_states.push(payload);
-                    merged.parents.push(a_parent.cloned());
-                } else {
-                    let merged_parent = Self::merge(
-                        a_parent.unwrap(),
-                        b_parent.unwrap(),
-                        root_is_wildcard,
-                        merge_cache,
-                    );
-                    merged.return_states.push(payload);
-                    merged.parents.push(Some(merged_parent));
+                    if both || ax_ax {
+                        merged.return_states.push(payload);
+                        merged.parents.push(a_parent.cloned());
+                    } else {
+                        let merged_parent = Self::merge(
+                            a_parent.unwrap(),
+                            b_parent.unwrap(),
+                            root_is_wildcard,
+                            merge_cache,
+                        );
+                        merged.return_states.push(payload);
+                        merged.parents.push(Some(merged_parent));
+                    }
+                    i += 1;
+                    j += 1;
                 }
-                i += 1;
-                j += 1;
-            } else if a.return_states[i] < b.return_states[j] {
-                merged.return_states.push(a.return_states[i]);
-                merged.parents.push(a_parent.cloned());
-                i += 1;
-            } else {
-                merged.return_states.push(b.return_states[j]);
-                merged.parents.push(b_parent.cloned());
-                j += 1;
+
+                Ordering::Less => {
+                    merged.return_states.push(a.return_states[i]);
+                    merged.parents.push(a_parent.cloned());
+                    i += 1;
+                }
+
+                Ordering::Greater => {
+                    merged.return_states.push(b.return_states[j]);
+                    merged.parents.push(b_parent.cloned());
+                    j += 1;
+                }
             }
         }
 
@@ -507,12 +514,13 @@ impl PredictionContext {
 
         PredictionContext::combine_common_parents(&mut merged);
 
+        #[allow(clippy::let_and_return)]
         let m = Array(merged);
 
         //        if &m == a.deref(){ return ; }
         //        if &m == b.deref(){ return ; }
 
-        return m;
+        m
     }
 
     pub fn from_rule_context<'input, Ctx: ParserNodeType<'input>>(
@@ -626,16 +634,14 @@ impl PredictionContextCache {
             return context.clone();
         }
 
-        let updated = if parents.len() == 0 {
+        let updated = if parents.is_empty() {
             return EMPTY_PREDICTION_CONTEXT.clone();
         } else if parents.len() == 1 {
             PredictionContext::new_singleton(parents[0].clone(), context.get_return_state(0))
+        } else if let Array(array) = context.deref() {
+            PredictionContext::new_array(parents, array.return_states.clone())
         } else {
-            if let Array(array) = context.deref() {
-                PredictionContext::new_array(parents, array.return_states.clone())
-            } else {
-                unreachable!()
-            }
+            unreachable!()
         };
 
         let updated = Arc::new(updated);
@@ -646,7 +652,7 @@ impl PredictionContextCache {
         visited.insert(context.deref(), updated.clone());
         visited.insert(updated.deref(), updated.clone());
 
-        return updated;
+        updated
     }
 
     #[doc(hidden)]

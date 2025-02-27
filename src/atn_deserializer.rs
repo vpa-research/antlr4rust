@@ -211,7 +211,7 @@ impl ATNDeserializer {
         &self,
         atn: &mut ATN,
         data: &mut dyn Iterator<Item = isize>,
-        sets: &Vec<IntervalSet>,
+        sets: &[IntervalSet],
     ) {
         let nedges = data.next().unwrap();
 
@@ -398,7 +398,7 @@ impl ATNDeserializer {
         arg1: isize,
         arg2: isize,
         arg3: isize,
-        sets: &Vec<IntervalSet>,
+        sets: &[IntervalSet],
     ) -> Box<dyn Transition> {
         //        //        let target = atn.states.get
         //        let mut base = BaseTransition {

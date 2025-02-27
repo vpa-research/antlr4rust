@@ -12,6 +12,7 @@ pub(crate) const LEXER_ACTION_TYPE_SKIP: isize = 6;
 pub(crate) const LEXER_ACTION_TYPE_TYPE: isize = 7;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
+#[allow(clippy::enum_variant_names)]
 pub(crate) enum LexerAction {
     LexerChannelAction(isize),
     LexerCustomAction {
@@ -36,30 +37,29 @@ impl LexerAction {
     ////        unsafe {discriminant_value(self)} as isize
     //    }
     pub fn is_position_dependent(&self) -> bool {
-        match self {
-            LexerAction::LexerCustomAction { .. }
-            | LexerAction::LexerIndexedCustomAction { .. } => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            LexerAction::LexerCustomAction { .. } | LexerAction::LexerIndexedCustomAction { .. }
+        )
     }
     pub(crate) fn execute<'input, T: Lexer<'input>>(&self, lexer: &mut T) {
-        match self {
-            &LexerAction::LexerChannelAction(channel) => lexer.set_channel(channel),
-            &LexerAction::LexerCustomAction {
+        match *self {
+            LexerAction::LexerChannelAction(channel) => lexer.set_channel(channel),
+            LexerAction::LexerCustomAction {
                 rule_index,
                 action_index,
             } => {
                 lexer.action(None, rule_index, action_index);
             }
-            &LexerAction::LexerModeAction(mode) => lexer.set_mode(mode as usize),
-            &LexerAction::LexerMoreAction => lexer.more(),
-            &LexerAction::LexerPopModeAction => {
+            LexerAction::LexerModeAction(mode) => lexer.set_mode(mode as usize),
+            LexerAction::LexerMoreAction => lexer.more(),
+            LexerAction::LexerPopModeAction => {
                 lexer.pop_mode();
             }
-            &LexerAction::LexerPushModeAction(mode) => lexer.push_mode(mode as usize),
-            &LexerAction::LexerSkipAction => lexer.skip(),
-            &LexerAction::LexerTypeAction(ty) => lexer.set_type(ty),
-            &LexerAction::LexerIndexedCustomAction { ref action, .. } => action.execute(lexer),
+            LexerAction::LexerPushModeAction(mode) => lexer.push_mode(mode as usize),
+            LexerAction::LexerSkipAction => lexer.skip(),
+            LexerAction::LexerTypeAction(ty) => lexer.set_type(ty),
+            LexerAction::LexerIndexedCustomAction { ref action, .. } => action.execute(lexer),
         }
     }
 }

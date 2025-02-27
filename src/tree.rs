@@ -8,18 +8,16 @@ use std::marker::PhantomData;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use crate::atn::INVALID_ALT;
 use crate::char_stream::InputData;
 use crate::int_stream::EOF;
 use crate::interval_set::Interval;
 use crate::parser::ParserNodeType;
-use crate::parser_rule_context::{ParserRuleContext, RuleContextExt};
+use crate::parser_rule_context::ParserRuleContext;
 use crate::recognizer::Recognizer;
 use crate::rule_context::{CustomRuleContext, RuleContext};
 use crate::token::Token;
 use crate::token_factory::TokenFactory;
 use crate::{interval_set, trees, CoerceTo};
-use better_any::{Tid, TidAble};
 use std::mem;
 
 //todo try to make in more generic
@@ -76,8 +74,8 @@ pub trait ParseTree<'input>: Tree<'input> {
     /// also it includes only tokens added to the parse tree
     ///
     /// Since tokens on hidden channels (e.g. whitespace or comments) are not
-    ///	added to the parse trees, they will not appear in the output of this
-    ///	method.
+    /// added to the parse trees, they will not appear in the output of this
+    /// method.
     fn get_text(&self) -> String {
         String::new()
     }
@@ -93,8 +91,8 @@ pub trait ParseTree<'input>: Tree<'input> {
     }
 }
 
-/// text of the node.
-/// Already implemented for all rule contexts
+///// text of the node.
+///// Already implemented for all rule contexts
 // pub trait NodeText {
 //     fn get_node_text(&self, rule_names: &[&str]) -> String;
 // }
@@ -138,10 +136,10 @@ impl<'input, Node: ParserNodeType<'input>, T: 'static> CustomRuleContext<'input>
     type Ctx = Node;
 
     fn get_rule_index(&self) -> usize {
-        usize::max_value()
+        usize::MAX
     }
 
-    fn get_node_text(&self, rule_names: &[&str]) -> String {
+    fn get_node_text(&self, _rule_names: &[&str]) -> String {
         self.symbol.borrow().get_text().to_display()
     }
 }
@@ -262,7 +260,7 @@ pub trait ParseTreeVisitorCompat<'input>: VisitChildren<'input, Self::Node> {
     fn temp_result(&mut self) -> &mut Self::Return;
 
     fn visit(&mut self, node: &<Self::Node as ParserNodeType<'input>>::Type) -> Self::Return {
-        self.visit_node(&node);
+        self.visit_node(node);
         mem::take(self.temp_result())
     }
 
@@ -288,7 +286,7 @@ pub trait ParseTreeVisitorCompat<'input>: VisitChildren<'input, Self::Node> {
             let child_result = self.visit(&node);
             result = self.aggregate_results(result, child_result);
         }
-        return result;
+        result
     }
 
     fn aggregate_results(&self, aggregate: Self::Return, next: Self::Return) -> Self::Return {
@@ -336,8 +334,8 @@ where
 pub trait ParseTreeVisitor<'input, Node: ParserNodeType<'input>>:
     VisitChildren<'input, Node>
 {
-    /// Basically alias for `node.accept(self)` in visitor implementation
-    /// just to make api closer to java
+    // Basically alias for `node.accept(self)` in visitor implementation
+    // just to make api closer to java
 
     /// Called on terminal(leaf) node
     fn visit_terminal(&mut self, _node: &TerminalNode<'input, Node>) {}

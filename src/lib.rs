@@ -210,6 +210,7 @@ macro_rules! coerce_from {
 
 /// Stable workaround for CoerceUnsized
 // #[doc(hidden)]
+#[allow(clippy::needless_arbitrary_self_type, reason = "for consistency")]
 pub trait CoerceTo<T: ?Sized> {
     fn coerce_rc_to(self: Rc<Self>) -> Rc<T>;
     fn coerce_box_to(self: Box<Self>) -> Box<T>;
@@ -217,6 +218,7 @@ pub trait CoerceTo<T: ?Sized> {
     fn coerce_mut_to(self: &mut Self) -> &mut T;
 }
 
+#[allow(clippy::needless_arbitrary_self_type, reason = "for consistency")]
 impl<T: ?Sized, X> CoerceTo<T> for X
 where
     T: CoerceFrom<X>,

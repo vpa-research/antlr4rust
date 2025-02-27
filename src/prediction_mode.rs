@@ -91,47 +91,46 @@ pub(crate) fn has_sll_conflict_terminating_prediction(
     //        return true          checked outside
     //    }
     let mut dup = ATNConfigSet::new_base_atnconfig_set(true);
-    let mut configs = &*configs;
-    if mode == PredictionMode::SLL {
-        if configs.has_semantic_context() {
-            configs.get_items().for_each(|it| {
-                let c = ATNConfig::new_with_semantic(
-                    it.get_state(),
-                    it.get_alt(),
-                    it.get_context().cloned(),
-                    Box::new(SemanticContext::NONE),
-                );
-                dup.add(Box::new(c));
-            });
-            configs = &dup;
-        }
+    let mut configs = configs;
+    if mode == PredictionMode::SLL && configs.has_semantic_context() {
+        configs.get_items().for_each(|it| {
+            let c = ATNConfig::new_with_semantic(
+                it.get_state(),
+                it.get_alt(),
+                it.get_context().cloned(),
+                Box::new(SemanticContext::NONE),
+            );
+            dup.add(Box::new(c));
+        });
+        configs = &dup;
     }
 
-    let altsets = get_conflicting_alt_subsets(&configs);
+    let altsets = get_conflicting_alt_subsets(configs);
+    #[allow(clippy::let_and_return)]
     let heuristic =
-        has_conflicting_alt_set(&altsets) && !has_state_associated_with_one_alt(&configs);
-    return heuristic;
+        has_conflicting_alt_set(&altsets) && !has_state_associated_with_one_alt(configs);
+    heuristic
 }
 
 //fn all_configs_in_rule_stop_states(configs: &ATNConfigSet) -> bool {
 //    for co
 //}
 
-pub(crate) fn resolves_to_just_one_viable_alt(altsets: &Vec<BitSet>) -> isize {
+pub(crate) fn resolves_to_just_one_viable_alt(altsets: &[BitSet]) -> isize {
     get_single_viable_alt(altsets)
 }
 
-pub(crate) fn all_subsets_conflict(altsets: &Vec<BitSet>) -> bool {
+pub(crate) fn all_subsets_conflict(altsets: &[BitSet]) -> bool {
     !has_non_conflicting_alt_set(altsets)
 }
 
-pub(crate) fn all_subsets_equal(altsets: &Vec<BitSet>) -> bool {
+pub(crate) fn all_subsets_equal(altsets: &[BitSet]) -> bool {
     let mut iter = altsets.iter();
     let first = iter.next();
     iter.all(|it| it == first.unwrap())
 }
 
-fn has_non_conflicting_alt_set(altsets: &Vec<BitSet>) -> bool {
+fn has_non_conflicting_alt_set(altsets: &[BitSet]) -> bool {
     altsets.iter().any(|it| it.len() == 1)
 }
 
@@ -146,7 +145,7 @@ fn has_conflicting_alt_set(altsets: &Vec<BitSet>) -> bool {
 
 //fn get_unique_alt(altsets: &Vec<BitSet>) -> int { unimplemented!() }
 //
-pub(crate) fn get_alts(altsets: &Vec<BitSet>) -> BitSet {
+pub(crate) fn get_alts(altsets: &[BitSet]) -> BitSet {
     altsets.iter().fold(BitSet::new(), |mut acc, it| {
         acc.extend(it);
         acc
@@ -185,7 +184,7 @@ fn has_state_associated_with_one_alt(configs: &ATNConfigSet) -> bool {
     false
 }
 
-pub(crate) fn get_single_viable_alt(altsets: &Vec<BitSet>) -> isize {
+pub(crate) fn get_single_viable_alt(altsets: &[BitSet]) -> isize {
     let mut viable_alts = BitSet::new();
     let mut min_alt = INVALID_ALT as usize;
     for alt in altsets {
