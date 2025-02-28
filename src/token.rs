@@ -140,7 +140,7 @@ impl<T: Borrow<str> + Debug> Display for GenericToken<T> {
             txt,
             self.token_type,
             if self.channel > 0 {
-                self.channel.to_string()
+                format!(",channel={}", self.channel)
             } else {
                 String::new()
             },
