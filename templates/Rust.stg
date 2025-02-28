@@ -1321,20 +1321,22 @@ impl\<'input, Input:CharStream\<From\<'input> >\> DerefMut for <lexer.name>\<'in
 
 
 impl\<'input, Input:CharStream\<From\<'input> >\> <lexer.name>\<'input,Input>{
-    fn get_rule_names(&self) -> &'static [&'static str] {
+    pub fn get_rule_names(&self) -> &'static [&'static str] {
         &ruleNames
     }
-    fn get_literal_names(&self) -> &[Option\<&str>] {
+    pub fn get_literal_names(&self) -> &[Option\<&str>] {
         &_LITERAL_NAMES
     }
 
-    fn get_symbolic_names(&self) -> &[Option\<&str>] {
+    pub fn get_symbolic_names(&self) -> &[Option\<&str>] {
         &_SYMBOLIC_NAMES
     }
 
-    fn get_grammar_file_name(&self) -> &'static str {
+    pub fn get_grammar_file_name(&self) -> &'static str {
         "<lexer.name>.g4"
     }
+
+   	pub fn get_vocabulary(&self) -> &dyn Vocabulary { &**VOCABULARY }
 
 	pub fn new_with_token_factory(input: Input, tf: &'input <TokenFactory()>) -> Self {
 		antlr_rust::recognizer::check_version("0","4");
