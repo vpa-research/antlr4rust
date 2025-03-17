@@ -104,12 +104,12 @@ impl ANTLRError {
     }
 }
 
-//impl ANTLRError {
-//    fn get_expected_tokens(&self, _atn: &ATN) -> IntervalSet {
-////        atn.get_expected_tokens(se)
-//        unimplemented!()
-//    }
-//}
+// impl ANTLRError {
+//     fn get_expected_tokens(&self, _atn: &ATN) -> IntervalSet {
+// //        atn.get_expected_tokens(se)
+//         unimplemented!()
+//     }
+// }
 
 /// Common part of ANTLR parser errors
 #[derive(Debug, Clone)]
@@ -222,6 +222,7 @@ impl InputMisMatchError {
 pub struct FailedPredicateError {
     pub base: BaseRecognitionError,
     pub rule_index: isize,
+    #[allow(unused)]
     predicate_index: isize,
     pub predicate: String,
 }

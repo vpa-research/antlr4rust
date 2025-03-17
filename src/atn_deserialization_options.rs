@@ -1,7 +1,9 @@
 #[derive(Debug)]
 pub struct ATNDeserializationOptions {
+    #[allow(unused)]
     read_only: bool,
     verify_atn: bool,
+    #[allow(unused)]
     generate_rule_bypass_transitions: bool,
 }
 

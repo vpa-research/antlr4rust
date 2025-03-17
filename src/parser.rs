@@ -15,8 +15,8 @@ use crate::interval_set::IntervalSet;
 use crate::parser_atn_simulator::ParserATNSimulator;
 use crate::parser_rule_context::ParserRuleContext;
 use crate::recognizer::{Actions, Recognizer};
-use crate::rule_context::{states_stack, CustomRuleContext, RuleContext};
-use crate::token::{Token, TOKEN_EOF};
+use crate::rule_context::{CustomRuleContext, RuleContext, states_stack};
+use crate::token::{TOKEN_EOF, Token};
 use crate::token_factory::{TokenAware, TokenFactory};
 use crate::token_stream::TokenStream;
 use crate::tree::{ErrorNode, Listenable, ParseTreeListener, TerminalNode};
@@ -711,6 +711,6 @@ impl<T: ?Sized> ListenerId<T> {
 
 impl<T> ListenerId<T> {
     unsafe fn into_listener<U: ?Sized>(self, boxed: Box<U>) -> Box<T> {
-        Box::from_raw(Box::into_raw(boxed) as *mut T)
+        unsafe { Box::from_raw(Box::into_raw(boxed) as *mut T) }
     }
 }

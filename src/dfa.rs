@@ -30,6 +30,7 @@ pub(crate) trait ScopeExt: Sized {
         self
     }
 
+    #[allow(unused)]
     fn drop(self) {}
 }
 
